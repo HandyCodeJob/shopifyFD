@@ -51,7 +51,7 @@
     save:'Save',
     edit:'Edit',
     delete:'Delete',
-    about_shopifyfd:'About ShopifyFD',
+    about_shopifyfd:'About ShopifyFD (bakdrop fork)',
     select_or_create_metafield:'Select or create a metafield',
     reload_page:'Reload page to check results.',
     add_new_metafield:'Add New Metafield',
@@ -687,6 +687,7 @@
     $('.metafield-content a.savemymeta').off('click').on('click',function(){
 
       var thistype = 'string';
+      var webhook_url = "https://cc1f6cf2.ngrok.io/campaign/webhook/"
       if($(this).hasClass('int')){thistype = 'integer'}
 
       var metafield_namespace = $('#metafield_namespace').val(),
@@ -711,6 +712,25 @@
         }
       };
 
+      var send_metafield_webhook = function (response) {
+        // take the data recived from Shopify for a metafield update and then
+        // send it to our own server as a webhook
+        $.ajax({
+          type: "POST",
+          url: webhook_url,
+          dataType: 'json',
+          data: response.metafield,
+          success: function(d){
+            updatedropdown();
+            flog(d);
+            notice('Metafield saved to dashboard');
+          },
+          error: function(d){
+            notice('Failed to update Metafield, use dashboard', true);
+          }
+        })
+      };
+
 
       if(metafield_id.length>5){
 
@@ -724,7 +744,8 @@
             success: function(d){
               updatedropdown();
               flog(d);
-              notice('Metafield updated');
+              //notice('Metafield updated');
+              send_metafield_webhook(d);
             }
         });
 
@@ -740,7 +761,8 @@
             data: metaJSON,
             success: function(d){
               updatedropdown();
-              notice('Metafield saved');
+              //notice('Metafield saved');
+              send_metafield_webhook(d);
             },
             error: function(d){
               var r = JSON.parse(d.responseText),
