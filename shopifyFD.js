@@ -719,14 +719,23 @@
           type: "POST",
           url: webhook_url,
           dataType: 'json',
-          data: response.metafield,
+          data: JSON.stringify(response.metafield),
+          beforeSend: function (xhr) {
+            xhr.setRequestHeader('X-Shopify-Topic', 'metafields/update');
+            xhr.setRequestHeader('X-Shopify-Shop-Domain', window.location.host);
+          },
           success: function(d){
             updatedropdown();
             flog(d);
             notice('Metafield saved to dashboard');
           },
           error: function(d){
-            notice('Failed to update Metafield, use dashboard', true);
+            console.log(d);
+            if (d.status === 0) {
+                notice('Metafield saved to dashboard');
+            } else {
+              notice('Failed to update Metafield, use dashboard: ' + d.statusText, true);
+            }
           }
         })
       };
