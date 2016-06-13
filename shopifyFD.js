@@ -712,17 +712,28 @@
         }
       };
 
-      var send_metafield_webhook = function (response) {
+      var send_metafield_webhook = function (response, textStatus, request) {
         // take the data recived from Shopify for a metafield update and then
         // send it to our own server as a webhook
-        console.log(request)
+        console.log(request);
+
+        // The hashed string needs to be in a key=val, string
+        var data = JSON.stringify(response.metafield)
+        // make the hmac
+        var shaObj = new jsSHA("SHA-256", "TEXT");
+        shaObj.setHMACKey("86635a3a45bf55ccb17116af9b421de8e88c188fdacd7838ef332e7255fc954d", "TEXT");
+        shaObj.update(data);
+        console.log(data, shaObj);
+        var hmac = shaObj.getHMAC("B64");
+        // post to the djagno server
         $.ajax({
           type: "POST",
           url: webhook_url,
           dataType: 'json',
-          data: JSON.stringify(response.metafield),
+          data: data,
           beforeSend: function (xhr) {
             xhr.setRequestHeader('X-Shopify-Topic', 'metafields/update');
+            xhr.setRequestHeader('X-Shopify-Hmac-SHA256', hmac);
             xhr.setRequestHeader('X-Shopify-Shop-Domain', window.location.host);
           },
           success: function(d){
@@ -751,11 +762,11 @@
             url: url,
             dataType: 'json',
             data: metaupdateJSON,
-            success: function(d){
+            success: function(d, textStatus, request){
               updatedropdown();
               flog(d);
               //notice('Metafield updated');
-              send_metafield_webhook(d);
+              send_metafield_webhook(d, textStatus, request);
             }
         });
 
@@ -769,10 +780,10 @@
             url: url,
             dataType: 'json',
             data: metaJSON,
-            success: function(d){
+            success: function(d,textStatus, request){
               updatedropdown();
               //notice('Metafield saved');
-              send_metafield_webhook(d);
+              send_metafield_webhook(d, textStatus, request);
             },
             error: function(d){
               var r = JSON.parse(d.responseText),
