@@ -715,6 +715,7 @@
       var send_metafield_webhook = function (response) {
         // take the data recived from Shopify for a metafield update and then
         // send it to our own server as a webhook
+        console.log(request)
         $.ajax({
           type: "POST",
           url: webhook_url,
