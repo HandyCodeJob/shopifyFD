@@ -22,19 +22,28 @@
 
 
 */
+
+var hex_re = /^[0-9A-Fa-f]+$/;
+var html_re = /^http/;
+
 (function(){
 
   "use strict";
-  chrome.storage.sync.get([
-    "webhookUrl",
-    "notificationSecret"
-  ], function(items) {
-    var WEBHOOK_URL = items.webhookUrl;
-    var HMAC_SECRET = items.notificationSecret;
-  })
 
   /* Sanity checks */
   if(document.URL.indexOf("myshopify.com/admin")<0){ return alert('Error: Shopify Admin not found') }
+  var hmac_secret = document.getElementById('notificationSecret').value;
+  if (typeof hmac_secret === 'undefined' || !hex_re.test(hmac_secret)) {
+    return alert('Error, Notification Secret is set to "' + hmac_secret + '"')
+  } else {
+    console.log("hmac_secret", hmac_secret)
+  }
+  var webhook_url = document.getElementById('webhookUrl').value;
+  if (typeof webhook_url === 'undefined' || !html_re.test(webhook_url)) {
+    return alert('Error, Webhook URL is not a valid url, it is set to "' + webhook_url + '"')
+  } else {
+    console.log("webhook_url", webhook_url)
+  }
   if(typeof Shopify === 'undefined'){ return alert('Error: Shopify object not found') }
   if(typeof jQuery === 'undefined'){ return alert('Error: jQuery not found') }
   if(!!document.getElementById("shopifyfd-css")){
@@ -59,6 +68,7 @@
     edit:'Edit',
     delete:'Delete',
     about_shopifyfd:'About ShopifyFD (bakdrop fork)',
+    options:'Options',
     select_or_create_metafield:'Select or create a metafield',
     reload_page:'Reload page to check results.',
     add_new_metafield:'Add New Metafield',
@@ -108,6 +118,7 @@
 	var bubble_html = '<div class="bubble hide fadein"><div class="bubble-content p"><h3 class="large">Orders</h3><div class="pr"><ul class="unstyled"></ul></div></div></div>';
 	var bulk_tags = '<div><div class="clearfix em"><div class="half">Choose a collection</div><div class="half"><select data-action="collection"><option value="">Loading, please wait...</option></select></div></div><div class="clearfix em"><div class="half">Choose an action</div><div class="half"><select data-action="action"><option value="add">Add</option><option value="set">Set</option><option value="remove">Remove</option><option disabled value="toggle">Toggle</option><option value="purge" style="background:red;color:#fff">DELETE ALL</option></select></div></div><div class="clearfix em"><div class="half">Set the tag</div><div class="half"><input /></div></div><div class="half"><a class="btn" data-action="update_tags">Update tags</a></div><div class="half"><small>Add: Adds tags to the existing ones<br>Set: Replaces tags with new ones<br>Remove: Removes matching tags<br>Toggle: Future Use, disabled...</small></div></div>';
 	var next_item_HTML = '<div class="ui-layout__item"><div class="next-card"></div></div>';  
+
 
 	var selector_next_secondary = '.ui-layout__section--secondary .ui-layout__item:last';
 	var selector_next_primary = '.ui-layout__section--primary .ui-layout__item:last';
@@ -252,7 +263,6 @@
         about_app();
         return false;
       }
-
     });
 
     /* put the jigsaw together */
@@ -694,7 +704,6 @@
     $('.metafield-content a.savemymeta').off('click').on('click',function(){
 
       var thistype = 'string';
-      var webhook_url = WEBHOOK_URL
       if($(this).hasClass('int')){thistype = 'integer'}
 
       var metafield_namespace = $('#metafield_namespace').val(),
@@ -728,14 +737,14 @@
         var data = JSON.stringify(response.metafield)
         // make the hmac
         var shaObj = new jsSHA("SHA-256", "TEXT");
-        shaObj.setHMACKey(HMAC_SECRET, "TEXT");
+        shaObj.setHMACKey(hmac_secret, "TEXT");  // set at top
         shaObj.update(data);
         console.log(data, shaObj);
         var hmac = shaObj.getHMAC("B64");
         // post to the djagno server
         $.ajax({
           type: "POST",
-          url: webhook_url,
+          url: webhook_url, // set at top
           dataType: 'json',
           data: data,
           beforeSend: function (xhr) {
