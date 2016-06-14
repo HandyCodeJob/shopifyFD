@@ -22,28 +22,31 @@
 
 
 */
-(function(){
-
-  "use strict";
+// load storage
+var WEBHOOK_URL, HMAC_SECRET;
   chrome.storage.sync.get([
     "webhookUrl",
     "notificationSecret"
   ], function(items) {
-    var WEBHOOK_URL = items.webhookUrl;
-    var HMAC_SECRET = items.notificationSecret;
-  })
+    WEBHOOK_URL = items.webhookUrl;
+    HMAC_SECRET = items.notificationSecret;
+  });
+
+(function(){
+
+  "use strict";
+  console.log(HMAC_SECRET)
 
   /* Sanity checks */
   if(document.URL.indexOf("myshopify.com/admin")<0){ return alert('Error: Shopify Admin not found') }
-  if(typeof Shopify === 'undefined'){ return alert('Error: Shopify object not found') }
-  if(typeof jQuery === 'undefined'){ return alert('Error: jQuery not found') }
+  
   if(!!document.getElementById("shopifyfd-css")){
     var errorMessage = 'Error: ShopifyFD already loaded';
-    "object" === typeof Shopify && Shopify.Flash && Shopify.Flash.error ? Shopify.Flash.error(errorMessage) : alert(errorMessage) ;
+    alert(errorMessage) ;
     return 
   };
   if (!("classList" in document.createElement("_")) || document.createElementNS && !("classList" in document.createElementNS("http://www.w3.org/2000/svg","g"))) {
-    notice("Browser unsupported (classList)"); /* if you want to add support for classList, do so here */
+    toastr.success("Browser unsupported (classList)"); /* if you want to add support for classList, do so here */
     return;
   };
 
@@ -190,13 +193,6 @@
   };
 
 
-  var notice = function(m,err){
-    /* Show message at bottom of the screen using the inbult messaging system */
-    if(typeof Shopify.Flash.error !== 'function' || typeof Shopify.Flash.notice !== 'function'){ return }
-    err ? Shopify.Flash.error(m) : Shopify.Flash.notice(m);
-  };
-
-
   var _data = function(a,b){
     /* setter and getter */
     if("undefined"===typeof b)return app[a];app[a]=b
@@ -306,14 +302,14 @@
       success: function(d){
         updatedropdown();
         if (typeof autosave === 'undefined'){
-          notice('Backup saved');
+          toastr.success('Backup saved');
         }else{
           $('#autosave').removeClass('is-loading').addClass('active');
         }
       },
       error: function(d){
         var err = JSON.parse(d.responseText);
-        notice(err.errors.value[0],true);
+        toastr.success(err.errors.value[0],true);
       }
     });
     return true;
@@ -341,7 +337,7 @@
           bulk_save_metafield_queue(m,i+1,debug_box)
         }else{
           if(_data('alpha') == 'products'){ updatedropdown() }
-          notice("Bulk changes done!");
+          toastr.success("Bulk changes done!");
         }
       }
     })
@@ -396,7 +392,7 @@
         };
         bulk_save_metafield_queue(metaJSON,0,debug_box);
       }else{
-        notice('No empty fields allowed');
+        toastr.success('No empty fields allowed');
       }
 
     });
@@ -416,11 +412,11 @@
           };
           bulk_save_metafield_queue(metaJSON,0,debug_box);
         }else{
-          notice('Value not an integer',true);
+          toastr.success('Value not an integer',true);
         }
 
       }else{
-        notice('No empty fields allowed',true);
+        toastr.success('No empty fields allowed',true);
       } 
     });
 
@@ -434,12 +430,12 @@
           _data('products',d.products);
           fd_modal(true,myhtml,'Bulk Metafield editing (for '+ d.products.length +' products)',true);
         }else{
-          notice('No products found',true);
+          toastr.success('No products found',true);
         }
       } 
     },
     error:function(d){
-      notice('Error getting products',true);
+      toastr.success('Error getting products',true);
     }
     });
 
@@ -590,7 +586,7 @@
             }
           },
           fail: function(){
-            notice('Failed to load products',true);
+            toastr.success('Failed to load products',true);
           }
         });
       }else{
@@ -630,7 +626,7 @@
             }
           },
           error: function(){
-            notice('Failed to load collections',true);
+            toastr.success('Failed to load collections',true);
           }
         });
       }else{
@@ -666,7 +662,7 @@
       e.preventDefault();
       var id = $('#metafield_id').val() || false;
       if(!id){
-        notice('Object ID Missing',true);
+        toastr.success('Object ID Missing',true);
         return false;
       }
 
@@ -681,11 +677,11 @@
         type: "DELETE",
         url: url,
         success: function(d){
-          notice(translation.metafield_deleted);
+          toastr.success(translation.metafield_deleted);
           updatedropdown();
         },
         error:function(d){
-          notice('Failed to delete',true);
+          toastr.success('Failed to delete',true);
         }
       });
 
@@ -746,14 +742,14 @@
           success: function(d){
             updatedropdown();
             flog(d);
-            notice('Metafield saved to dashboard');
+            toastr.success('Metafield saved to dashboard');
           },
           error: function(d){
             console.log(d);
             if (d.status === 0) {
-                notice('Metafield saved to dashboard');
+                toastr.success('Metafield saved to dashboard');
             } else {
-              notice('Failed to update Metafield, use dashboard: ' + d.statusText, true);
+              toastr.success('Failed to update Metafield, use dashboard: ' + d.statusText, true);
             }
           }
         })
@@ -772,7 +768,7 @@
             success: function(d, textStatus, request){
               updatedropdown();
               flog(d);
-              //notice('Metafield updated');
+              //toastr.success('Metafield updated');
               send_metafield_webhook(d, textStatus, request);
             }
         });
@@ -789,7 +785,7 @@
             data: metaJSON,
             success: function(d,textStatus, request){
               updatedropdown();
-              //notice('Metafield saved');
+              //toastr.success('Metafield saved');
               send_metafield_webhook(d, textStatus, request);
             },
             error: function(d){
@@ -800,7 +796,7 @@
               if (r.errors.key){e+='Key '+escape(r.errors.key[0])+'. '}
               if (r.errors.value){e+='Value '+escape(r.errors.value[0])+'. '}
 
-              notice('Metafield failed to save: ' + e,true);
+              toastr.success('Metafield failed to save: ' + e,true);
             }
         });
       }
@@ -894,7 +890,7 @@
           files_index++;
 
           if(files_index < files_count){
-            notice("Reading file ["+ (files_index+1 )+"] contents...");
+            toastr.success("Reading file ["+ (files_index+1 )+"] contents...");
             reader.readAsDataURL(files[files_index]);
           }else{
             do_upload(file_array);
@@ -903,7 +899,7 @@
 
         if(files_count){
           document.documentElement.className = 'dragit';
-          notice("Reading file ["+ (files_index+1 )+"] contents...");
+          toastr.success("Reading file ["+ (files_index+1 )+"] contents...");
           reader.readAsDataURL(files[files_index]);
         }
 
@@ -919,7 +915,7 @@
     if(!settings.enableDragDrop){ return false }
 
     var tid = app.data.themeId; //_data('themeID');
-    if(!tid || isNaN(tid)){ notice('Theme ID not found',true); return false; }
+    if(!tid || isNaN(tid)){ toastr.success('Theme ID not found',true); return false; }
 
     var files = d;
     var files_count = Object.keys(d).length;
@@ -939,13 +935,13 @@
         url: '/admin/themes/'+tid+'/assets.json',
         data: myfile,
         success: function(){
-          notice(files[files_index].name + ' uploaded ('+(files_index+1)+'/'+files_count+')');
+          toastr.success(files[files_index].name + ' uploaded ('+(files_index+1)+'/'+files_count+')');
           files_index++;
           if(files_index < files_count){ doajax() }
           /* if(files_index == files_count){ document.documentElement.className = '' } */
         },
         error:function(){
-          notice('File upload failed',true);
+          toastr.success('File upload failed',true);
           /* document.documentElement.className = ''; */
         }
       });
@@ -959,7 +955,7 @@
   var updateVariant = function(data,count,callback){
 
     if(typeof data === 'undefined'){ return false }
-    notice('Updating Variant '+(count+1)+'/'+data.length+'...');
+    toastr.success('Updating Variant '+(count+1)+'/'+data.length+'...');
 
     if(typeof count === 'undefined'){ var count = 0 }
     if(typeof callback === 'undefined'){ var callback = false }
@@ -974,14 +970,14 @@
         if(count<data.length){
           updateVariant(data,count,callback);
         }else{
-          notice('Variants updated');
+          toastr.success('Variants updated');
           if(typeof callback === 'function'){
             callback();
           }
         } 
       },
       error:function(){
-        notice('Update failed',true);
+        toastr.success('Update failed',true);
       }
     });
   };
@@ -1010,11 +1006,11 @@
       success: function(d){
         flog(d);
         setup_vrow(id);
-        notice('Metafield saved');
+        toastr.success('Metafield saved');
       },
       error:function(d){
         setup_vrow(id);
-        notice('Error Saving',true);
+        toastr.success('Error Saving',true);
       }
     });
 
@@ -1035,11 +1031,11 @@
       success: function(d){
         flog(d);
         setup_vrow(id);
-        notice(translation.metafield_deleted);
+        toastr.success(translation.metafield_deleted);
       },
       error:function(d){
         setup_vrow(id);
-        notice('Failed to delete',true);
+        toastr.success('Failed to delete',true);
       }
     });
   };
@@ -1059,7 +1055,7 @@
 
   var setup_vrow = function(v){
 
-    if(typeof v === 'undefined' || isNaN(v) || !v ){ notice("Could not find ID",true); return false }
+    if(typeof v === 'undefined' || isNaN(v) || !v ){ toastr.error("Could not find ID"); return false }
 
     $('#mv_namespace').val('').prop("disabled", false);
     $('#mv_key').val('').prop("disabled", false);
@@ -1149,7 +1145,7 @@
         
       },
       error:function(d){
-        notice("Error grabbing metafields",true);
+        toastr.error("Error grabbing metafields");
       }
     });
 
@@ -1208,7 +1204,7 @@
         $('ul.next-token-list').eq(0).find('a').click();
       });
     }else{
-      notice('ShopifyFD error : btn_removealltags : target html not found',true);
+      toastr.success('ShopifyFD error : btn_removealltags : target html not found',true);
     }
 
   };
@@ -1271,11 +1267,11 @@
       for (var i = 0, len = m.length; i < len; i++) {
         if(m[i].namespace === 'backups'){
         mycontent.html(m[i].value);
-        notice('Backup restored');
+        toastr.success('Backup restored');
         return;
       }}
     }else{
-      notice('Error, nothing to restore',true);
+      toastr.success('Error, nothing to restore',true);
     }
   };
 
@@ -1283,7 +1279,7 @@
   var setup_discounts = function(){
 
     var targetHTML = $(header_secondary_action);
-    if(!targetHTML.length){ notice('ShopifyFD error : setup_discounts : target html not found',true); return false }
+    if(!targetHTML.length){ toastr.success('ShopifyFD error : setup_discounts : target html not found',true); return false }
 
     var u = $('<ul/>',{
     'class':'segmented',
@@ -1321,7 +1317,7 @@
 
 
     }else{
-      notice('ShopifyFD error : setup_articles : Metafield target HTML not found',true);
+      toastr.success('ShopifyFD error : setup_articles : Metafield target HTML not found',true);
     }
 
     if(headerButtons.length){
@@ -1358,7 +1354,7 @@
               redirect('/admin/blogs/'+d.article.blog_id+'/articles/'+d.article.id);
             },
             error:function(d){
-              notice('Error saving',true);
+              toastr.success('Error saving',true);
             }
           });
 
@@ -1371,7 +1367,7 @@
       headerButtons.prepend(u);
 
     }else{
-      notice('ShopifyFD error : setup_articles : Header button missing',true);
+      toastr.success('ShopifyFD error : setup_articles : Header button missing',true);
     }
 
     if ($('#rte_extra').length === 0){
@@ -1386,7 +1382,7 @@
   var setup_blogs = function(){
 
     targetHTML = $(selector_next_secondary);
-    if(!targetHTML.length){ notice('ShopifyFD error : setup_blogs : target html not found',true); return false }
+    if(!targetHTML.length){ toastr.success('ShopifyFD error : setup_blogs : target html not found',true); return false }
 
     targetHTML.prepend(metafieldloader);
     var loadinto = $(selector_mf_content);
@@ -1470,14 +1466,14 @@
           data: metaJSON,
           success: function(d){
             updatedropdown();
-            notice('Images saved to metafield');
+            toastr.success('Images saved to metafield');
           },
           error:function(d){
-            notice('Error saving',true);
+            toastr.success('Error saving',true);
         }
       });
     }else{
-      notice('No images found',true);
+      toastr.success('No images found',true);
     }
 
   };
@@ -1515,13 +1511,13 @@
         try {
           _data('shop_settings', d.shop_settings);
           totalSkus = d.shop_settings.total_skus;
-          skuGridCell.html(skuNoticeHtml);
+          skuGridCell.html(sknotifyHtml);
         }catch (e) {}
 
         if(totalSkus){
-          var skuNoticeHtml = '<div class="box notice header-notice has-ico"><i class="ico next-icon--16 next-icon--notice-blue in-gutter"></i>You are using %1 skus</div>';
-          skuNoticeHtml = skuNoticeHtml.replace('%1',totalSkus);
-          skuGridCell.html(skuNoticeHtml);
+          var sknotifyHtml = '<div class="box notify headernotify has-ico"><i class="ico next-icon--16 next-icon-notify-blue in-gutter"></i>You are using %1 skus</div>';
+          sknotifyHtml = sknotifyHtml.replace('%1',totalSkus);
+          skuGridCell.html(sknotifyHtml);
           firstGridCell.after(skuGridCell);
         }
       }
@@ -1543,7 +1539,7 @@
     if(!targetHTML.length){targetHTML = $(header_primary_action)}
 
     if(!targetHTML.length){ 
-      notice('Error : setup_products_list : html not found',true); 
+      toastr.success('Error : setup_products_list : html not found',true); 
       return false 
     }
 
@@ -1591,7 +1587,7 @@
               if(i+1 < p.length){
                 getsku(p,i+1);
               }else{
-                notice('SKUs and Variant IDs Loaded');
+                toastr.success('SKUs and Variant IDs Loaded');
                 t.removeClass('is-loading').text('Data Loaded');
               }
 
@@ -1601,7 +1597,7 @@
 
         };
 
-        notice('Loading SKUs and Variant IDs, please wait...');
+        toastr.success('Loading SKUs and Variant IDs, please wait...');
         getsku(p,i);
       }
 
@@ -1703,7 +1699,7 @@
         });
       };
       var plural = 1 < themeIDs.length ? 's' :'';
-      notice(themeIDs.length + ' export request'+plural+' sent. Check your inbox');
+      toastr.success(themeIDs.length + ' export request'+plural+' sent. Check your inbox');
     });
     target.append(downloadAll);
 
@@ -1743,7 +1739,7 @@
         
       },
       error:function(d){
-        notice('Error loading linklist data',true);
+        toastr.success('Error loading linklist data',true);
       }
     });
 
@@ -1791,7 +1787,7 @@
 
             },
             error:function(){
-              notice('Error! Are you sure you have access to collections?',true);
+              toastr.success('Error! Are you sure you have access to collections?',true);
             }
           });
 
@@ -1838,7 +1834,7 @@
 
             },
             error:function(){
-              notice('Error! Are you sure you have access to pages?',true);
+              toastr.success('Error! Are you sure you have access to pages?',true);
             }
           });
 
@@ -1914,17 +1910,17 @@
                 linklistID = loc.split('/').pop();
 
                 if(!isNaN(linklistID)){
-                  notice('Link list added');
+                  toastr.success('Link list added');
                   redirect('/admin/link_lists/'+linklistID);
                 }else{
-                  notice('Error creating linklist - ID not returned',true);
+                  toastr.success('Error creating linklist - ID not returned',true);
                 }
               }else{
                 /* if the redirected header is not present we will need to parse the returned html for clues */
                 var form = $(d).find('form').eq(0);
                 linklistID = form.attr('action').split('/').pop();
                 if(!isNaN(linklistID)){
-                  notice('Link list added');
+                  toastr.success('Link list added');
                   redirect('/admin/link_lists/'+linklistID);
                 }
                 
@@ -1932,7 +1928,7 @@
 
             },
             error:function(){
-              notice('Error creating linklist',true);
+              toastr.success('Error creating linklist',true);
             }
           });
 
@@ -1947,15 +1943,15 @@
             data:JSON.stringify(linklist),
             contentType: "application/json;charset=utf-8", 
             success: function(d){
-              notice('Link list added');
+              toastr.success('Link list added');
               redirect('/admin/link_lists/'+d.link_list.id);
             },
             error:function(a){
               if(a.status === 406){
-                notice('Linklist creation attempted. Reload page.');
+                toastr.success('Linklist creation attempted. Reload page.');
                 redirect('/admin/links');
               }else{
-                notice('Error creating linklist',true); 
+                toastr.success('Error creating linklist',true); 
               }
               
             }
@@ -2047,13 +2043,13 @@
                 },
                 error:function(s,b,e){
                   t.removeClass('btn is-loading no-btn');
-                  notice(e,true);
+                  toastr.success(e,true);
                 }
               });
               }
 
             }else{
-              notice('Can not copy this linklist. ID was not found',true);
+              toastr.success('Can not copy this linklist. ID was not found',true);
             }
         });
   
@@ -2216,7 +2212,7 @@
         if(d.length > 0){
           bulk_redirects(d);
         }else{
-          notice('Bulk redirection additions complete');
+          toastr.success('Bulk redirection additions complete');
         }
       },
       error: function(data){
@@ -2226,7 +2222,7 @@
         if(d.length > 0){
           bulk_redirects(d);
         }else{
-          notice('Bulk redirection additions complete');
+          toastr.success('Bulk redirection additions complete');
         }
       }
 
@@ -2244,7 +2240,7 @@
       if(!nextCard.length){ nextCard = $('#url_redirects') }
 
       if(!nextCard.length){ 
-        notice('Could not add bulk redirect panel',true);
+        toastr.success('Could not add bulk redirect panel',true);
         return false;
       }
 
@@ -2477,7 +2473,7 @@
                   success: function(d){
                     b.addClass('disabled'); 
                     put_tags(d,0,t.val(),function(){
-                      notice('Done. Tags have been added');
+                      toastr.success('Done. Tags have been added');
                       b.text('Update tags').removeClass('disabled');
                     });
                   }
@@ -2494,7 +2490,7 @@
                   success: function(d){
                     b.addClass('disabled'); 
                     set_tags(d,0,t.val(),function(){
-                      notice('Done.');
+                      toastr.success('Done.');
                       b.text('Update tags').removeClass('disabled');
                     });
                   }
@@ -2510,14 +2506,14 @@
                   success: function(d){
                     b.addClass('disabled'); 
                     delete_tags(d,0,t.val(),function(){
-                      notice('Matched tags have been removed.');
+                      toastr.success('Matched tags have been removed.');
                       b.text('Update tags').removeClass('disabled');
                     });
                   }
                   });
                 }
 
-              }else{ notice('Choose a collection',true); }
+              }else{ toastr.success('Choose a collection',true); }
 
                 return false;
 
@@ -2550,7 +2546,7 @@
         targetHTML.prepend(u);
 
       }else{
-        notice('ShopifyFD error : setup_collections : target html not found');
+        toastr.success('ShopifyFD error : setup_collections : target html not found');
       }
   };
 
@@ -2579,11 +2575,11 @@
         if('undefined' !== typeof _data('m')){
           if(_data('m').length > 0){
             localStorage["metafieldCopy"] = JSON.stringify(_data('m'));
-            notice(_data('m').length + " Metafields copied");
+            toastr.success(_data('m').length + " Metafields copied");
             p.show();
             q.show();
           }else{
-            notice('No metafields to copy',true);
+            toastr.success('No metafields to copy',true);
           }
 
         }else{
@@ -2628,10 +2624,10 @@
             _data('m-copy',copyData);
             save_metafield_queue(_data('m-copy'),0);
           }else{
-            notice('Nothing to paste',true);
+            toastr.success('Nothing to paste',true);
           }
         }else{
-          notice('Nothing to paste',true);
+          toastr.success('Nothing to paste',true);
         }   
 
       });
@@ -2649,7 +2645,7 @@
   var save_metafield_queue = function(q,i){
 
     if(typeof q === 'undefined' || typeof i === 'undefined'){ return false }
-    notice('Pasting metafields...');
+    toastr.success('Pasting metafields...');
 
     var metaJSON = {
       "metafield": {
@@ -2671,7 +2667,7 @@
           save_metafield_queue(q,++i);
         }else{
            updatedropdown();
-          notice("All metafields pasted!");
+          toastr.success("All metafields pasted!");
         }
       }
     });
@@ -2688,7 +2684,7 @@
       data: {'product': {'id': id,'images': ['']}},
       success: function(d){
         $('#product-images').parent().remove();
-        notice('Images deleted. Reload product to check...');
+        toastr.success('Images deleted. Reload product to check...');
       }
     }); 
   };
@@ -2717,7 +2713,7 @@
           var loadinto = $(selector_mf_content);
           loadmeta(loadinto);
         }else{
-          notice('ShopifyFD error : setup_products : Metafield target HTML not found',true);
+          toastr.success('ShopifyFD error : setup_products : Metafield target HTML not found',true);
         }
       }
       
@@ -2755,7 +2751,7 @@
             
           },
           error:function(d){
-            notice('Error loading linklist data',true);
+            toastr.success('Error loading linklist data',true);
           }
         });
       }
@@ -2820,7 +2816,7 @@
                   updatedropdown();
                 },
                 error:function(d){
-                  notice('Failed to delete',true);
+                  toastr.success('Failed to delete',true);
                 }
               });
             }else{
@@ -2840,7 +2836,7 @@
                    updatedropdown();
                 },
                 error:function(){
-                  notice("Failed to save metafield",true);
+                  toastr.error("Failed to save metafield");
                 }
               }); 
             }
@@ -2870,11 +2866,11 @@
 
           if(t.hasClass('active')){
 
-            notice("Autosave disabled");
+            toastr.success("Autosave disabled");
             clearInterval(_data('autosave'));
             t.removeClass('active');
           }else{
-            notice("Autosave enabled");
+            toastr.success("Autosave enabled");
             t.addClass('active');
             _data('autosave',setInterval(function(){
               if(window.location.href.indexOf('/admin/products/')>-1){
@@ -2955,10 +2951,10 @@
                       updateVariant(data,0,isDone);
                     }
                   }else{
-                    notice('Unexpected variant found.',true);
+                    toastr.success('Unexpected variant found.',true);
                   }
                 }else{
-                  notice('You only have 1 variant. No need to bulk edit',true);
+                  toastr.success('You only have 1 variant. No need to bulk edit',true);
                 }
               }
             }
@@ -2968,7 +2964,7 @@
           inventorySummary.append(bulkPriceEdit);
 
         }else{
-          notice('ShopifyFD error : setup_products : Inventory target HTML not found',true);
+          toastr.success('ShopifyFD error : setup_products : Inventory target HTML not found',true);
         }
       }
 
@@ -3059,17 +3055,17 @@
                         },
                         success: function(d){
                           updatedropdown();
-                          notice('Preferred collection metafield saved');
+                          toastr.success('Preferred collection metafield saved');
                         },
                         error: function(d){
                           var err = JSON.parse(d.responseText);
-                          notice(err.errors.value[0],true);
+                          toastr.success(err.errors.value[0],true);
                         }
                       }); 
                     }
                   },
                   error: function(){
-                    notice('Failed to load collection',true);
+                    toastr.success('Failed to load collection',true);
                   }
                 });
               }
@@ -3130,7 +3126,7 @@
                         if(i<v.length){
                           update_weight(i,v);
                         }else{
-                          notice('Weight updated');
+                          toastr.success('Weight updated');
                           a.removeClass('is-loading').text(translation.save);
                         } 
                       }
@@ -3141,7 +3137,7 @@
                   update_weight(0,v);
 
                 }else{
-                  notice('Did you set a weight?',true);
+                  toastr.success('Did you set a weight?',true);
                 }
                 return !1;
 
@@ -3204,7 +3200,7 @@
 
       loadmeta($(selector_mf_content));
     }else{
-      notice('ShopifyFD error : setup_pages : Metafield target HTML not found',true);
+      toastr.success('ShopifyFD error : setup_pages : Metafield target HTML not found',true);
     }
 
     /* RTE ADD ON BUTTONS */
@@ -3248,11 +3244,11 @@
           
         },
         error:function(d){
-          notice('Error loading page data',true);
+          toastr.success('Error loading page data',true);
         }
       });
     }else{
-      notice('ShopifyFD error : setup_pages : Page switcher target HTML not found',true);
+      toastr.success('ShopifyFD error : setup_pages : Page switcher target HTML not found',true);
     }
 
   };
@@ -3262,7 +3258,7 @@
 
     if(typeof settings.urls ==='undefined'){ return false }
 
-    notice('Copying rates ('+ settings.urls.length +')');
+    toastr.success('Copying rates ('+ settings.urls.length +')');
     var currentZoneUrl = settings.urls[0];
 
     if(currentZoneUrl.indexOf('price_based') < 0 && currentZoneUrl.indexOf('weight_based') < 0){ 
@@ -3304,7 +3300,7 @@
 
   var deleteZones = function(zones){
     if(typeof zones === 'undefined'){ return }
-    notice('Delete zone ('+zones.length+')');
+    toastr.success('Delete zone ('+zones.length+')');
     var url = '/admin/settings/shipping_zones/'+zones[0];
     var data = {
       'utf8':'✓',
@@ -3321,12 +3317,12 @@
           deleteZones(zones);
         }else{
           $('.delete-zones').removeClass('is-loading');
-          notice('Zones deleted. '+translation.reload_page);
+          toastr.success('Zones deleted. '+translation.reload_page);
         }
       },
       error: function(d){
         $('.delete-zones').removeClass('is-loading');
-        notice('Error deleting rates. '+translation.reload_page,true);
+        toastr.success('Error deleting rates. '+translation.reload_page,true);
         return;
       }
     });
@@ -3334,7 +3330,7 @@
 
 
   var addZones = function(rates,zone){
-    notice('Pasting rates ('+rates.length+')');
+    toastr.success('Pasting rates ('+rates.length+')');
     var currentZone = rates[0];
     var data = {
       utf8:'✓',
@@ -3366,7 +3362,7 @@
     }
 
     var ratesPasted = function(){
-      notice('Pasting complete. '+translation.reload_page);
+      toastr.success('Pasting complete. '+translation.reload_page);
       $('.paste-zones').removeClass('disabled is-loading');
     }
 
@@ -3386,7 +3382,7 @@
         }
       },
       error: function(d){
-        notice('Error when pasting a rate',true);
+        toastr.success('Error when pasting a rate',true);
         rates.shift();
         if(rates.length){ addZones(rates,zone) }else{
           ratesPasted();
@@ -3439,7 +3435,7 @@
 
       var zoneId = t.parent().find('a').eq(2)[0].href.split('/').pop();
       if(isNaN(zoneId)){
-        notice('Paste failed. ID did not match format expected.',true);
+        toastr.success('Paste failed. ID did not match format expected.',true);
         reset();
         return;
       }
@@ -3469,7 +3465,7 @@
       var next = t.next('a')[0].href.split('/').pop();
       
       if(isNaN(next)){
-        notice('Copy failed. ID did not match format expected.',true);
+        toastr.success('Copy failed. ID did not match format expected.',true);
         return;
       }
 
@@ -3496,7 +3492,7 @@
         }else{
           t.removeClass('is-loading');
           $('.paste-zones').removeClass('disabled');
-          notice(allZones.length + ' Rates Copied');
+          toastr.success(allZones.length + ' Rates Copied');
         }
       }
       _data('copiedZones',allZones);
@@ -3529,7 +3525,7 @@
       }
 
     }else{
-      notice('ShopifyFD error : setup_custom_collections : target html not found',true);
+      toastr.success('ShopifyFD error : setup_custom_collections : target html not found',true);
     }
 
     if(headerButtons.length){
@@ -3589,7 +3585,7 @@
                 catch (e) {/* error trap */}
               },
               error:function(){
-                notice('Error duplicating.', true);
+                toastr.success('Error duplicating.', true);
               }
             });
 
@@ -3619,7 +3615,7 @@
               if(typeof page === 'undefined'){ var page = 1 }
               if(typeof collects === 'undefined'){ var collects = [] }
 
-              notice('Duplicating collection, please wait...');
+              toastr.success('Duplicating collection, please wait...');
 
               $.ajax({
                 type:'GET',
@@ -3647,7 +3643,7 @@
                         catch (e) {/* error trap */}
                       },
                       error:function(){
-                        notice('Error duplicating.', true);
+                        toastr.success('Error duplicating.', true);
                       }
                     });
                   }else{
@@ -3666,7 +3662,7 @@
       u.append(l);
       headerButtons.prepend(u);
     }else{
-      notice('ShopifyFD error : setup_articles : Header button missing',true);
+      toastr.success('ShopifyFD error : setup_articles : Header button missing',true);
     }
   };
 
@@ -3730,7 +3726,7 @@
                 if(fileArray.length){
                   downloadBlob(fileArray,'files-list-'+ Math.floor(Date.now() / 1000) +'.txt');
                 }else{
-                  notice('No files exist. Nothing to list.',true)
+                  toastr.success('No files exist. Nothing to list.',true)
                 }
               }
 
@@ -3792,7 +3788,7 @@
   var setup_customers = function(){
 
       var targetHTML = $(selector_next_secondary);
-      if(!targetHTML.length){ notice('ShopifyFD error : setup_customers : target HTML not found'); return false }
+      if(!targetHTML.length){ toastr.success('ShopifyFD error : setup_customers : target HTML not found'); return false }
 
       var nextCardSecondary = $(next_item_HTML);
       nextCardSecondary.find('.next-card').append(metafieldloader);
@@ -3814,7 +3810,7 @@
       loadmeta(loadinto);
 
     }else{
-      notice('ShopifyFD error : setup_single_order : target html not found',true);
+      toastr.success('ShopifyFD error : setup_single_order : target html not found',true);
     }
 
     var emailLink = $('.customer-email:last');
@@ -4085,7 +4081,7 @@
         }
       }
     }, settings.wait);
-    notice("ShopifyFD loaded");
+    toastr.success("ShopifyFD loaded");
   };
 
   init();

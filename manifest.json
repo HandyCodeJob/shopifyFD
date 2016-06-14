@@ -1,4 +1,10 @@
 {
+   "content_scripts": [
+     {
+       "matches": ["https://*.myshopify.com/admin/*"],
+       "js": ["jquery.js", "sha256.js", "toastr.js", "shopifyFD.js"]
+     }
+   ],
    "background": {
       "persistent": false,
       "scripts": [ "background.js" ]
@@ -8,7 +14,7 @@
       "default_title": "Load ShopifyFD"
    },
    "description": "Adds functionality and fixes to the Shopify Dashboard (for free!)",
-   "homepage_url": "http://freakdesign.com.au",
+   "homepage_url": "https://github.com/HandyCodeJob/shopifyFD",
    "icons": {
       "128": "icons/icons-128.png",
       "16": "icons/icons-16.png",
@@ -20,7 +26,8 @@
    "options_page": "options.html",
    "permissions": [ 
       "activeTab",
-      "storage"
+      "storage",
+      "background"
    ],
    "short_name": "ShopifyFD",
    "update_url": "https://clients2.google.com/service/update2/crx",
