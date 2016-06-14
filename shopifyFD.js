@@ -25,6 +25,13 @@
 (function(){
 
   "use strict";
+  chrome.storage.sync.get([
+    "webhookUrl",
+    "notificationSecret"
+  ], function(items) {
+    var WEBHOOK_URL = items.webhookUrl;
+    var HMAC_SECRET = items.notificationSecret;
+  })
 
   /* Sanity checks */
   if(document.URL.indexOf("myshopify.com/admin")<0){ return alert('Error: Shopify Admin not found') }
@@ -687,7 +694,7 @@
     $('.metafield-content a.savemymeta').off('click').on('click',function(){
 
       var thistype = 'string';
-      var webhook_url = "https://cc1f6cf2.ngrok.io/campaign/webhook/"
+      var webhook_url = WEBHOOK_URL
       if($(this).hasClass('int')){thistype = 'integer'}
 
       var metafield_namespace = $('#metafield_namespace').val(),
@@ -721,7 +728,7 @@
         var data = JSON.stringify(response.metafield)
         // make the hmac
         var shaObj = new jsSHA("SHA-256", "TEXT");
-        shaObj.setHMACKey("86635a3a45bf55ccb17116af9b421de8e88c188fdacd7838ef332e7255fc954d", "TEXT");
+        shaObj.setHMACKey(HMAC_SECRET, "TEXT");
         shaObj.update(data);
         console.log(data, shaObj);
         var hmac = shaObj.getHMAC("B64");
