@@ -758,8 +758,16 @@ var html_re = /^http/;
             notice('Metafield saved to dashboard');
           },
           error: function(d){
-            console.log("error", d);
-            notice('Failed to update Metafield, Reason: ' + d.responseText, true);
+            // Don't know why this code is triggered even if the server returns
+            // a 200 OK status
+            if (d.status === 200) {
+              updatedropdown();
+              flog(d);
+              notice('Metafield saved to dashboard');
+            } else {
+              console.log("error", d);
+              notice('Failed to update Metafield, Reason: ' + d.responseText, true);
+            }
           }
         })
       };
