@@ -758,12 +758,8 @@ var html_re = /^http/;
             notice('Metafield saved to dashboard');
           },
           error: function(d){
-            console.log(d);
-            if (d.status === 0) {
-                notice('Metafield saved to dashboard');
-            } else {
-              notice('Failed to update Metafield, use dashboard: ' + d.statusText, true);
-            }
+            console.log("error", d);
+            notice('Failed to update Metafield, Reason: ' + d.responseText, true);
           }
         })
       };
